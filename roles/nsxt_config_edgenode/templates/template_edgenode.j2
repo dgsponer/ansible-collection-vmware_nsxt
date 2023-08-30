@@ -1,0 +1,59 @@
+display_name: {{ item.display_name }}
+description: 'Deployed by Ansible'
+resource_type: TransportNode
+
+host_switch_spec:
+  host_switches:
+{% for hostswitch in item.host_switches %}
+  - host_switch_name: {{ hostswitch.host_switch_name }}
+    host_switch_type: NVDS
+    host_switch_mode: STANDARD
+    host_switch_profile_ids:
+    - key: UplinkHostSwitchProfile
+      value: {{ (nsxt_uplinkprofile | json_query('json.results[?display_name==`' + hostswitch.uplink_profile + '`].path')).0 }}
+    pnics: {{ hostswitch.uplinks }}
+{% if hostswitch.ip_pool is defined %}
+    ip_assignment_spec:
+      ip_pool_id: "{{ (nsxt_ippool | json_query('json.results[?display_name==`' + hostswitch.ip_pool + '`].realization_id')).0 }}"
+      resource_type: StaticIpPoolSpec
+{% endif %}
+    transport_zone_endpoints:
+{% for transport_zone_endpoint in hostswitch.transport_zone_endpoints %}
+    - transport_zone_id: "{{ (nsxt_transportzone | json_query('json.results[?display_name==`' + transport_zone_endpoint.transport_zone_name + '`].id')).0 }}"
+      transport_zone_profile_ids:
+      - resource_type: BfdHealthMonitoringProfile
+        profile_id: "{{ (nsxt_transportzoneprofile | json_query('json.results[?display_name==`' + transport_zone_endpoint.transport_zone_profile + '`].id')).0 }}"
+{% endfor %}
+{% endfor %}
+  resource_type: StandardHostSwitchSpec
+
+node_deployment_info:
+  deployment_type: VIRTUAL_MACHINE
+  deployment_config:
+    vm_deployment_config: #grab from vcenter later
+      vc_id: "{{ (nsxt_computemanagers | json_query('json.results[?server==`' + item.deployment_config.vm_deployment_config.vcenter + '`].id')).0 }}"
+      compute_id: "{{ item.deployment_config.vm_deployment_config.compute_id }}"
+      storage_id: "{{ item.deployment_config.vm_deployment_config.storage_id }}"
+      host_id: "{{ item.deployment_config.vm_deployment_config.host_id }}"
+      management_network_id: "{{ item.deployment_config.vm_deployment_config.management_network_id }}"
+      ipv4_assignment_enabled: true
+      management_port_subnets: {{ item.deployment_config.vm_deployment_config.management_port_subnets }}
+      default_gateway_addresses: {{ item.deployment_config.vm_deployment_config.default_gateway_addresses }}
+      data_network_ids: {{ item.deployment_config.vm_deployment_config.data_network_ids }}
+      placement_type: VsphereDeploymentConfig
+    form_factor: {{ item.deployment_config.form_factor }}
+    node_user_settings:
+      cli_username: {{ item.deployment_config.node_user_settings.cli_username }}
+      root_password: {{ item.deployment_config.node_user_settings.root_password }}
+      cli_password: {{ item.deployment_config.node_user_settings.cli_password }}
+
+  node_settings:
+    hostname: {{ item.node_settings.hostname }}
+    search_domains: {{ item.node_settings.search_domains }}
+    ntp_servers: {{ item.node_settings.ntp_servers }}
+    dns_servers: {{ item.node_settings.dns_servers }}
+    enable_ssh: {{ item.node_settings.enable_ssh }}
+    allow_ssh_root_login: {{ item.node_settings.allow_ssh_root_login }}
+    enable_upt_mode: {{ item.node_settings.enable_upt_mode }}
+  resource_type: EdgeNode
+  display_name: {{ item.display_name }}

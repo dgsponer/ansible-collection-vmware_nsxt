@@ -1,0 +1,25 @@
+---
+# tasks file for nsxt_deploy
+- name: get passwords
+  include_role:
+    name: ansible-role-cyberark
+  tags: always
+
+- name: Check if VM is already deployed
+  community.vmware.vmware_vm_info:
+    hostname: "{{ deployment_vcenter }}"
+    username: "{{ deployment_vcenter_user }}"
+    password: "{{ deployment_vcenter_pw }}"
+    vm_name: "{{ inventory_hostname }}"
+  delegate_to: localhost
+  register: vm_info
+  ignore_errors: true
+  tags: always
+
+- name: Deploy NSX-T VM
+  include_tasks: deploy_primary.yml
+  tags:
+    - deploy_nsxt.yml
+  when:
+    - vm_info is defined and vm_info.failed
+    - "'Failed to find virtual machine' in vm_info.msg"

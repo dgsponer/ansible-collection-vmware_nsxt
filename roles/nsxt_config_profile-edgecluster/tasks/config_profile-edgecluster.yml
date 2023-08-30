@@ -1,0 +1,65 @@
+---
+# tasks file for nsxt_config_profile-edgecluster
+- name: Get EdgeCluster-Profile "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/cluster-profiles
+    method: GET
+    status_code: 200, 404
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: edgecluster_profile
+  delegate_to: localhost
+
+
+
+- name: Create EdgeCluster-Profile "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/cluster-profiles
+    method: POST
+    status_code: 201
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      resource_type: "{{ item.resource_type }}"
+      display_name: "{{ item.display_name }}"
+      bfd_probe_interval: "{{ item.bfd_probe_interval }}"
+      bfd_allowed_hops: "{{ item.bfd_allowed_hops }}"
+      bfd_declare_dead_multiple: "{{ item.bfd_declare_dead_multiple }}"
+      standby_relocation_config:
+        standby_relocation_threshold: "{{ item.standby_relocation_config.standby_relocation_threshold }}"
+  when: item.display_name not in (edgecluster_profile.json | json_query('results[*].display_name'))
+  delegate_to: localhost
+
+- set_fact:
+    param: "{{ (edgecluster_profile | json_query(query)).0 }}"
+  vars:
+    query: "json.results[?display_name=='{{ item.display_name}}'].{id:id, _revision:_revision}"
+  when: item.display_name in (edgecluster_profile.json | json_query('results[*].display_name'))
+
+- name: Update EdgeCluster-Profile "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/cluster-profiles/{{ param.id }}
+    method: PUT
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      resource_type: "{{ item.resource_type }}"
+      id: "{{ param.id }}"
+      display_name: "{{ item.display_name }}"
+      bfd_probe_interval: "{{ item.bfd_probe_interval }}"
+      bfd_allowed_hops: "{{ item.bfd_allowed_hops }}"
+      bfd_declare_dead_multiple: "{{ item.bfd_declare_dead_multiple }}"
+      standby_relocation_config:
+        standby_relocation_threshold: "{{ item.standby_relocation_config.standby_relocation_threshold }}"
+      _revision: "{{ param._revision}}"
+  when: item.display_name in (edgecluster_profile.json | json_query('results[*].display_name'))
+  delegate_to: localhost

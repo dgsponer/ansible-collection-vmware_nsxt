@@ -1,0 +1,77 @@
+---
+# tasks file for nsxt_config_profile-transportnode
+# - name: get passwords
+#   include_role:
+#     name: ansible-role-cyberark
+#   tags: always
+
+- name: Get Host Switches
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/fabric/virtual-switches
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    return_content: true
+  register: nsxt_hostswitch
+  delegate_to: localhost
+
+- name: Get Uplink Profile
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-switch-profiles?include_system_owned=true
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    return_content: true
+  register: nsxt_uplinkprofile
+  delegate_to: localhost
+
+- name: Get Transportzone
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites/default/enforcement-points/default/transport-zones
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    return_content: true
+  register: nsxt_transportzone
+  delegate_to: localhost
+
+- name: Get Transportzone Profile
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/transport-zone-profiles
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    return_content: true
+  register: nsxt_transportzoneprofile
+  delegate_to: localhost
+
+- name: Get IP Pools
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/ip-pools
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    return_content: true
+  register: nsxt_ippool
+  delegate_to: localhost
+
+
+
+- name: Create Transportnode-Profile
+  include_tasks: config_profile-transportnode.yml
+  loop: "{{ nsxt.transportnode_profile }}"

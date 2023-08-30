@@ -1,0 +1,43 @@
+---
+# tasks file for nsxt_config_ippool
+- set_fact:
+    ip_pool: "{{ item }}"
+
+- name: Create IP-Pool "{{ item.name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/ip-pools/{{ ip_pool.id }}
+    method: PATCH
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      display_name: "{{ item.display_name }}"
+      description: "{{ item.description | default('') }}"
+  delegate_to: localhost
+
+
+
+- name: Create Subnet
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/ip-pools/{{ ip_pool.id }}/ip-subnets/{{ item.id }}
+    method: PATCH
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      display_name: "{{ item.id }}"
+      description: "{{ item.description | default(omit) }}"
+      resource_type: "IpAddressPoolStaticSubnet"
+      allocation_ranges: "{{ item.ranges }}"
+      cidr: "{{ item.cidr }}"
+      gateway_ip: "{{ item.gateway | default(omit) }}"
+      dns_nameservers: "{{ item.dns | default(omit) }}"
+      dns_suffix: "{{ item.dns_suffix | default(omit) }}"
+  delegate_to: localhost
+  loop: "{{ ip_pool.subnets }}"

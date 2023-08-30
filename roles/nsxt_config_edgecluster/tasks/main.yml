@@ -1,0 +1,49 @@
+---
+# tasks file for nsxt_config_edgecluster
+# - name: get passwords
+#   include_role:
+#     name: ansible-role-cyberark
+#   tags: always
+
+- name: Get Edgeclusters
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/edge-clusters
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    return_content: true
+  register: nsxt_edgeclusters
+  delegate_to: localhost
+
+- name: Get EdgeCluster-Profile
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/cluster-profiles
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: nsxt_edgecluster_profile
+  delegate_to: localhost
+
+- name: Get Edgenode
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/transport-nodes
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: nsxt_edgenode
+  delegate_to: localhost
+
+
+
+- name: Create Edgecluster
+  include_tasks: config_edgecluster.yml
+  loop: "{{ nsxt.edgecluster }}"

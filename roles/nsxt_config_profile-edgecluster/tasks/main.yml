@@ -1,0 +1,10 @@
+---
+# tasks file for nsxt_config_profile-edgecluster
+# - name: get passwords
+#   include_role:
+#     name: ansible-role-cyberark
+#   tags: always
+
+- name: Config uplink-profile
+  include_tasks: config_profile-edgecluster.yml
+  loop: "{{ nsxt.edgecluster_profile }}"

@@ -1,0 +1,144 @@
+{
+    "node_id": "1b592402-3e52-484f-8bfc-986496ef7888",
+    "host_switch_spec": {
+        "host_switches": [
+            {
+                "host_switch_name": "nsxHostSwitch",
+                "host_switch_id": "f872deda-e716-4fe8-97c5-fbc847bc3609",
+                "host_switch_type": "NVDS",
+                "host_switch_mode": "STANDARD",
+                "host_switch_profile_ids": [
+                    {
+                        "key": "UplinkHostSwitchProfile",
+                        "value": "ce766854-e12a-482a-9ca3-082e4c04f5ad"
+                    }
+                ],
+                "pnics": [
+                    {
+                        "device_name": "fp-eth0",
+                        "uplink_name": "uplink-1"
+                    },
+                    {
+                        "device_name": "fp-eth1",
+                        "uplink_name": "uplink-2"
+                    }
+                ],
+                "is_migrate_pnics": false,
+                "ip_assignment_spec": {
+                    "ip_pool_id": "e6f2b8f7-e646-4755-a024-17d4a39df1db",
+                    "resource_type": "StaticIpPoolSpec"
+                },
+                "cpu_config": [],
+                "transport_zone_endpoints": [
+                    {
+                        "transport_zone_id": "1b3a2f36-bfd1-443e-a0f6-4de01abc963e",
+                        "transport_zone_profile_ids": [
+                            {
+                                "resource_type": "BfdHealthMonitoringProfile",
+                                "profile_id": "52035bb3-ab02-4a08-9884-18631312e50a"
+                            }
+                        ]
+                    },
+                    {
+                        "transport_zone_id": "a95c914d-748d-497c-94ab-10d4647daeba",
+                        "transport_zone_profile_ids": [
+                            {
+                                "resource_type": "BfdHealthMonitoringProfile",
+                                "profile_id": "52035bb3-ab02-4a08-9884-18631312e50a"
+                            }
+                        ]
+                    }
+                ],
+                "pnics_uninstall_migration": [],
+                "vmk_uninstall_migration": [],
+                "not_ready": false
+            }
+        ],
+        "resource_type": "StandardHostSwitchSpec"
+    },
+    "maintenance_mode": "DISABLED",
+    "node_deployment_info": {
+        "deployment_type": "VIRTUAL_MACHINE",
+        "deployment_config": {
+            "vm_deployment_config": {
+                "vc_id": "228edb6f-3dcf-4cde-a19a-79c98e4287cb",
+                "compute_id": "domain-c8",
+                "storage_id": "datastore-42",
+                "host_id": "host-7011",
+                "management_network_id": "dvportgroup-33",
+                "ipv4_assignment_enabled": true,
+                "management_port_subnets": [
+                    {
+                        "ip_addresses": [
+                            "172.16.1.19"
+                        ],
+                        "prefix_length": 26
+                    }
+                ],
+                "default_gateway_addresses": [
+                    "172.16.1.1"
+                ],
+                "data_network_ids": [
+                    "/infra/segments/lab01-0000trunk",
+                    "/infra/segments/lab01-0000trunk"
+                ],
+                "reservation_info": {
+                    "memory_reservation": {
+                        "reservation_percentage": 50
+                    },
+                    "cpu_reservation": {
+                        "reservation_in_shares": "LOW_PRIORITY",
+                        "reservation_in_mhz": 0
+                    }
+                },
+                "resource_allocation": {
+                    "cpu_count": 2,
+                    "memory_allocation_in_mb": 4096
+                },
+                "placement_type": "VsphereDeploymentConfig"
+            },
+            "form_factor": "SMALL",
+            "node_user_settings": {
+                "cli_username": "admin",
+                "root_password":"Admin!23Admin",
+                "cli_password":"Admin!23Admin"
+            }
+        },
+        "node_settings": {
+            "hostname": "lab01-nte-04.vcloud24.net",
+            "search_domains": [
+                "vcloud24.net"
+            ],
+            "ntp_servers": [
+                "172.16.1.1"
+            ],
+            "dns_servers": [
+                "172.16.1.1"
+            ],
+            "enable_ssh": true,
+            "allow_ssh_root_login": true,
+            "enable_upt_mode": false
+        },
+        "resource_type": "EdgeNode",
+        "external_id": "1b592402-3e52-484f-8bfc-986496ef7888",
+        "ip_addresses": [
+            "172.16.1.19"
+        ],
+        "id": "1b592402-3e52-484f-8bfc-986496ef7888",
+        "display_name": "lab01-nte-04.vcloud24.net",
+        "tags": [],
+        "_revision": 16
+    },
+    "is_overridden": false,
+    "resource_type": "TransportNode",
+    "id": "1b592402-3e52-484f-8bfc-986496ef7888",
+    "display_name": "lab01-nte-04.vcloud24.net",
+    "tags": [],
+    "_system_owned": false,
+    "_create_time": 1663861043396,
+    "_create_user": "admin",
+    "_last_modified_time": 1680121076777,
+    "_last_modified_user": "admin",
+    "_protection": "NOT_PROTECTED",
+    "_revision": 16
+}

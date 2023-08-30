@@ -1,0 +1,57 @@
+---
+# tasks file for nsxt_config_profile-uplink
+- name: Get Uplink-Profile "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-switch-profiles/{{ item.id }}
+    method: GET
+    status_code: 200, 404
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: uplink_profile
+  delegate_to: localhost
+
+- name: Create Uplink-Profile "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-switch-profiles/{{ item.id }}
+    method: PATCH
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      id: "{{ item.id }}"
+      display_name: "{{ item.display_name }}"
+      overlay_encap: "{{ item.overlay_encap | default('GENEVE') }}"
+      teaming: "{{ item.teaming }}"
+      transport_vlan: "{{ item.transport_vlan | default('0') }}"
+      resource_type: "{{ item.resource_type | default('PolicyUplinkHostSwitchProfile') }}"
+  when: uplink_profile.status == 404
+  delegate_to: localhost
+
+
+
+- name: Update Uplink-Profile "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-switch-profiles/{{ item.id }}
+    method: PATCH
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      id: "{{ item.id }}"
+      display_name: "{{ item.display_name }}"
+      description: "Managed by Ansible"
+      overlay_encap: "{{ item.overlay_encap | default('GENEVE') }}"
+      teaming: "{{ item.teaming }}"
+      transport_vlan: "{{ item.transport_vlan | default('0') }}"
+      resource_type: "{{ item.resource_type | default('PolicyUplinkHostSwitchProfile') }}"
+      _revision: "{{ uplink_profile.json._revision }}"
+  when: uplink_profile.status == 200
+  delegate_to: localhost

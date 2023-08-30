@@ -1,0 +1,10 @@
+---
+# tasks file for nsxt_config_ippool
+# - name: get passwords
+#   include_role:
+#     name: ansible-role-cyberark
+#   tags: always
+
+- name: Create IP-Pool
+  include_tasks: config_ippool.yml
+  loop: "{{ nsxt.ip_pools }}"

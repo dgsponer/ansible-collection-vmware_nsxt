@@ -1,0 +1,32 @@
+---
+# tasks file for nsxt_config_profile-transportnode
+- name: Get Edgenodes
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/transport-nodes/
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: nsxt_edgenode
+  delegate_to: localhost
+
+- name: Check Edgenode "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/transport-nodes/{{ (nsxt_edgenode | json_query('json.results[?display_name==`' + item.display_name + '`].id')).0 }}/state
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: nsxt_edgenode_status
+  until: nsxt_edgenode_status.json.state == "success"
+  retries: 100
+  delay: 30
+  ignore_errors: true
+  delegate_to: localhost
+
+- debug:
+    var: nsxt_edgenode_status.json.state

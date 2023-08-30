@@ -1,0 +1,45 @@
+---
+# tasks file for nsxt_config_profile-transportnode
+# - name: Get Transportnode-Profile "{{ item.display_name }}"
+#   uri:
+#     url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-transport-node-profiles
+#     method: GET
+#     status_code: 200, 404
+#     validate_certs: no
+#     user: "{{ nsxt.username }}"
+#     password: "{{ nsxt.admin_password }}"
+#     force_basic_auth: yes
+#   register: transportnode_profile
+#   delegate_to: localhost
+
+# - name: Set Transportnode-Profile
+#   set_fact:
+#     transportnode_profile: "{{ (transportnode_profile | json_query(query)).0 }}"
+#   vars:
+#     query: "json.results[?display_name=='{{ item.display_name}}'].{id:id, _revision:_revision}"
+#   when: item.display_name in (transportnode_profile.json | json_query('results[*].display_name'))
+
+- name: Create Edgenode Payload
+  template:
+    src: template_edgenode.j2
+    dest: /tmp/nsxt_edgenode.yml
+  delegate_to: localhost
+
+- name: Deploy Edgenode "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/transport-nodes
+    method: POST
+    status_code: 201
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body: "{{ (lookup('template', '/tmp/nsxt_edgenode.yml')) | from_yaml }}"
+  delegate_to: localhost
+
+- name: Remove Edgenode Payload
+  file:
+    path: /tmp/nsxt_edgenode.yml
+    state: absent
+  delegate_to: localhost

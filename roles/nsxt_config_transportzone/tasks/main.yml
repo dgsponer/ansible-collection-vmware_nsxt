@@ -1,0 +1,10 @@
+---
+# tasks file for nsxt_config_transportzone
+# - name: get passwords
+#   include_role:
+#     name: ansible-role-cyberark
+#   tags: always
+
+- name: Create Transport Zone
+  include_tasks: config_transportzone.yml
+  loop: "{{ nsxt.transport_zone }}"

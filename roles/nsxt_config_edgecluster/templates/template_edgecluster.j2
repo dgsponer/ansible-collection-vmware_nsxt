@@ -1,0 +1,12 @@
+id: {{ (nsxt_edgeclusters | json_query('json.results[?display_name==`' + item.display_name + '`].id')).0 | default(omit) }}
+description: "Managed by Ansible"
+display_name: {{ item.display_name }}
+resource_type: EdgeCluster
+cluster_profile_bindings:
+  - profile_id: {{ (nsxt_edgecluster_profile | json_query('json.results[?display_name==`' + item.cluster_profile + '`].id')).0 }}
+    resource_type: EdgeHighAvailabilityProfile
+members:
+{% for member in item.members %}
+  - transport_node_id: {{ (nsxt_edgenode | json_query('json.results[?display_name==`' + member.display_name + '`].id')).0 }}
+{% endfor %}
+_revision: {{ (nsxt_edgeclusters | json_query('json.results[?display_name==`' + item.display_name + '`]._revision')).0 | default(omit) }}

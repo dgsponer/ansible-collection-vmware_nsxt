@@ -1,0 +1,15 @@
+---
+# tasks file for nsxt_config_transportzone
+- name: Config Transport Zone  "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites/default/enforcement-points/default/transport-zones/{{ item.id }}
+    method: PATCH
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      "{{ item }}"
+  delegate_to: localhost

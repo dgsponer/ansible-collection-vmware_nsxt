@@ -1,0 +1,16 @@
+---
+# tasks file for nsxt_config_license
+- name: Config license
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/licenses
+    method: POST
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      license_key: "{{ item }}"
+  when: (item not in (nsxt_license.json | json_query('results[*].license_key')))
+  delegate_to: localhost

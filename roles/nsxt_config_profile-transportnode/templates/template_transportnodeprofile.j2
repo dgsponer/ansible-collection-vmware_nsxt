@@ -1,0 +1,35 @@
+id: "{{ item.id }}"
+display_name: "{{ item.display_name }}"
+description: "{{ item.description | default(omit) }}"
+resource_type: "PolicyHostTransportNodeProfile"
+_revision: "{{ transportnode_profile._revision | default(omit) }}"
+
+host_switch_spec:
+  resource_type: "StandardHostSwitchSpec"
+
+  host_switches:
+{% for hostswitch in item.host_switch %}
+    - host_switch_name: {{ hostswitch.dvs_switch }}
+      host_switch_id: {{ (nsxt_hostswitch | json_query('json.results[?display_name==`' + hostswitch.dvs_switch + '`].uuid')).0 }}
+      host_switch_type: "VDS"
+      host_switch_mode: "STANDARD"
+      host_switch_profile_ids:
+        - key: "UplinkHostSwitchProfile"
+          value: {{ (nsxt_uplinkprofile | json_query('json.results[?display_name==`' + hostswitch.uplink_profile + '`].path')).0 }}
+
+      uplinks:
+        {{ hostswitch.uplinks }}
+
+      ip_assignment_spec:
+        resource_type: "StaticIpPoolSpec"
+        ip_pool_id: "/infra/manager-ip-pools/{{ (nsxt_ippool | json_query('json.results[?display_name==`' + hostswitch.ip_pool + '`].realization_id')).0 }}"
+
+      transport_zone_endpoints: #iterate
+{% for transportzone in hostswitch.transport_zone %}
+        - transport_zone_id: {{ (nsxt_transportzone | json_query('json.results[?display_name==`' + transportzone.transport_zone_name + '`].path')).0 }}
+          transport_zone_profile_ids:
+            - resource_type: "BfdHealthMonitoringProfile"
+              profile_id: "{{ (nsxt_transportzoneprofile | json_query('json.results[?display_name==`' + transportzone.transport_zone_profile + '`].path')).0 }}"
+{% endfor %}
+
+{% endfor %}
