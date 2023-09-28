@@ -56,7 +56,7 @@
     method: GET
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
   until: nsx_managers.status == 200 and inventory_hostname_short in (nsx_managers.json | json_query('results[*].display_name'))

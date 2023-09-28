@@ -6,10 +6,10 @@
     method: PATCH
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
       "{{ item }}"
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'

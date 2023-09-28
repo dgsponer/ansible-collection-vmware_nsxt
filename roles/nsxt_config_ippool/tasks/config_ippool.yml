@@ -9,15 +9,14 @@
     method: PATCH
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
       display_name: "{{ item.display_name }}"
       description: "{{ item.description | default('') }}"
-  delegate_to: localhost
-
+  delegate_to: '{{ nsxt.api_host }}'
 
 
 - name: Create Subnet
@@ -26,7 +25,7 @@
     method: PATCH
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
@@ -39,5 +38,5 @@
       gateway_ip: "{{ item.gateway | default(omit) }}"
       dns_nameservers: "{{ item.dns | default(omit) }}"
       dns_suffix: "{{ item.dns_suffix | default(omit) }}"
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
   loop: "{{ ip_pool.subnets }}"

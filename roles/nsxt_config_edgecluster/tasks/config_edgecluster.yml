@@ -1,17 +1,11 @@
 ---
 # tasks file for nsxt_config_edgecluster
-# - name: get passwords
-#   include_role:
-#     name: ansible-role-cyberark
-#   tags: always
-
-
 #Create
 - name: Create Edgecluster Payload
   template:
     src: template_edgecluster.j2
     dest: /tmp/nsxt_edgecluster.yml
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
   when: item.display_name not in (nsxt_edgeclusters.json | json_query('results[*].display_name'))
 
 - name: Create Edgecluster  "{{ item.display_name }}"
@@ -20,19 +14,19 @@
     method: POST
     status_code: 201
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body: "{{ (lookup('template', '/tmp/nsxt_edgecluster.yml')) | from_yaml }}"
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
   when: item.display_name not in (nsxt_edgeclusters.json | json_query('results[*].display_name'))
 
 - name: Remove Edgecluster Profile Payload
   file:
     path: /tmp/nsxt_edgecluster.yml
     state: absent
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
   when: item.display_name not in (nsxt_edgeclusters.json | json_query('results[*].display_name'))
 
 
@@ -41,7 +35,7 @@
   template:
     src: template_edgecluster.j2
     dest: /tmp/nsxt_edgecluster.yml
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
   when: item.display_name in (nsxt_edgeclusters.json | json_query('results[*].display_name'))
 
 - name: Update Edgecluster  "{{ item.display_name }}"
@@ -50,17 +44,17 @@
     method: PUT
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body: "{{ (lookup('template', '/tmp/nsxt_edgecluster.yml')) | from_yaml }}"
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
   when: item.display_name in (nsxt_edgeclusters.json | json_query('results[*].display_name'))
 
 - name: Remove Edgecluster Profile Payload
   file:
     path: /tmp/nsxt_edgecluster.yml
     state: absent
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
   when: item.display_name in (nsxt_edgeclusters.json | json_query('results[*].display_name'))

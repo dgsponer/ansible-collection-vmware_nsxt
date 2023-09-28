@@ -6,11 +6,11 @@
     method: GET
     status_code: 200, 404
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
   register: edgecluster_profile
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
 
 
 
@@ -20,7 +20,7 @@
     method: POST
     status_code: 201
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
@@ -33,7 +33,7 @@
       standby_relocation_config:
         standby_relocation_threshold: "{{ item.standby_relocation_config.standby_relocation_threshold }}"
   when: item.display_name not in (edgecluster_profile.json | json_query('results[*].display_name'))
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
 
 - set_fact:
     param: "{{ (edgecluster_profile | json_query(query)).0 }}"
@@ -47,7 +47,7 @@
     method: PUT
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
@@ -62,4 +62,4 @@
         standby_relocation_threshold: "{{ item.standby_relocation_config.standby_relocation_threshold }}"
       _revision: "{{ param._revision}}"
   when: item.display_name in (edgecluster_profile.json | json_query('results[*].display_name'))
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'

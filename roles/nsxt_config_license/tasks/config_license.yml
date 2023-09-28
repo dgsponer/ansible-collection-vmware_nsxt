@@ -6,11 +6,11 @@
     method: POST
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
       license_key: "{{ item }}"
   when: (item not in (nsxt_license.json | json_query('results[*].license_key')))
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'

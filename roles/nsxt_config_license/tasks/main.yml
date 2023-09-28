@@ -11,11 +11,11 @@
     method: GET
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
   register: nsxt_license
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
 
 - name: Config License
   include_tasks: config_license.yml

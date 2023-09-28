@@ -6,11 +6,13 @@
     method: GET
     status_code: 200, 404
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
   register: uplink_profile
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
+
+
 
 - name: Create Uplink-Profile "{{ item.display_name }}"
   uri:
@@ -18,7 +20,7 @@
     method: PATCH
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
@@ -30,9 +32,7 @@
       transport_vlan: "{{ item.transport_vlan | default('0') }}"
       resource_type: "{{ item.resource_type | default('PolicyUplinkHostSwitchProfile') }}"
   when: uplink_profile.status == 404
-  delegate_to: localhost
-
-
+  delegate_to: '{{ nsxt.api_host }}'
 
 - name: Update Uplink-Profile "{{ item.display_name }}"
   uri:
@@ -40,7 +40,7 @@
     method: PATCH
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
@@ -54,4 +54,4 @@
       resource_type: "{{ item.resource_type | default('PolicyUplinkHostSwitchProfile') }}"
       _revision: "{{ uplink_profile.json._revision }}"
   when: uplink_profile.status == 200
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'

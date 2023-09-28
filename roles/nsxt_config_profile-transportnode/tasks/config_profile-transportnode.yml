@@ -6,11 +6,11 @@
     method: GET
     status_code: 200, 404
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
   register: transportnode_profile
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
 
 - name: Set Transportnode-Profile
   set_fact:
@@ -23,7 +23,7 @@
   template:
     src: template_transportnodeprofile.j2
     dest: /tmp/nsxt_transportnodeprofile.yml
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
 
 - name: Create Transportnode Profile  "{{ item.display_name }}"
   uri:
@@ -31,15 +31,15 @@
     method: PUT
     status_code: 200
     validate_certs: no
-    user: "{{ nsxt.username }}"
+    user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body: "{{ (lookup('template', '/tmp/nsxt_transportnodeprofile.yml')) | from_yaml }}"
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
 
 - name: Remove Transportnode Profile Payload
   file:
     path: /tmp/nsxt_transportnodeprofile.yml
     state: absent
-  delegate_to: localhost
+  delegate_to: '{{ nsxt.api_host }}'
