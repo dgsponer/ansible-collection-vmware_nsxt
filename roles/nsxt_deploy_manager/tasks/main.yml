@@ -1,5 +1,5 @@
 ---
-# tasks file for nsxt_deploy
+# tasks file for nsxt_deploy_manager
 - name: get ip for "{{ inventory_hostname }}"
   set_fact:
     eth0_ip: "{{ lookup('dig', inventory_hostname) | ansible.utils.ipaddr }}"

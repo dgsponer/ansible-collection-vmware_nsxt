@@ -1,5 +1,5 @@
 ---
-# tasks file for nsxt_config_edgenode
+# tasks file for nsxt_deploy_edgenode
 # - name: get passwords
 #   include_role:
 #     name: ansible-role-cyberark
