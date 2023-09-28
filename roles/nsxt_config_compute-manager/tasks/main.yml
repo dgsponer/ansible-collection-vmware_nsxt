@@ -1,0 +1,5 @@
+---
+# tasks file for nsxt_config_compute-manager
+- name: Create Compute-Manager
+  include_tasks: config_compute-manager.yml
+  loop: "{{ nsxt.compute_manager }}"

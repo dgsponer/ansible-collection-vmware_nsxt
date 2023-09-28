@@ -64,3 +64,18 @@
   delay: 15
   register: nsx_managers
   delegate_to: "{{ nsxt.deployment.host }}"
+
+- name: Wait, that the manager "{{ inventory_hostname }}" have /policy/api/v1/infra/sites available
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  until: nsx_sites.status == 200
+  retries: 100
+  delay: 15
+  register: nsx_sites
+  delegate_to: "{{ nsxt.deployment.host }}"
