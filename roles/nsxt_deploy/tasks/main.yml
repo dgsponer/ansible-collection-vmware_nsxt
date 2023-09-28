@@ -1,25 +1,66 @@
 ---
 # tasks file for nsxt_deploy
-- name: get passwords
-  include_role:
-    name: ansible-role-cyberark
-  tags: always
+- name: get ip for "{{ inventory_hostname }}"
+  set_fact:
+    eth0_ip: "{{ lookup('dig', inventory_hostname) | ansible.utils.ipaddr }}"
 
-- name: Check if VM is already deployed
-  community.vmware.vmware_vm_info:
-    hostname: "{{ deployment_vcenter }}"
-    username: "{{ deployment_vcenter_user }}"
-    password: "{{ deployment_vcenter_pw }}"
-    vm_name: "{{ inventory_hostname }}"
-  delegate_to: localhost
-  register: vm_info
+- name: abort if ip address could not be found for host
+  fail:
+    msg: "An IP could not be found for the system, got result: {{ inventory_hostname }}"
+  when: not eth0_ip
+
+# https://docs.vmware.com/en/VMware-NSX/4.1/installation/GUID-5843917A-A1D1-4D19-B9B0-0FD4C900C31C.html
+- name: Deploy "{{ inventory_hostname }}"
+  ansible.builtin.command:
+    argv:
+      - ovftool
+      - "--noSSLVerify"
+      - "--skipManifestCheck"
+      - "--acceptAllEulas"
+      - "--deploymentOption={{ nsxt.deployment.option }}"
+      - "--ipProtocol=IPv4"
+      - "--ipAllocationPolicy=fixedPolicy"
+      - "--datastore={{ nsxt.deployment.datastore }}"
+      - "--allowExtraConfig"
+      - "--network={{ nsxt.deployment.eth0.network }}"
+      - "--name={{ inventory_hostname }}"
+      - "--vmFolder={{ nsxt.deployment.folder }}"
+      - "--diskMode=thin"
+      - "--prop:nsx_hostname={{ inventory_hostname }}"
+      - "--prop:nsx_role={{ nsxt.deployment.role }}"
+      - "--prop:nsx_ip_0={{ eth0_ip }}"
+      - "--prop:nsx_netmask_0={{ nsxt.deployment.eth0.netmask }}"
+      - "--prop:nsx_gateway_0={{ nsxt.deployment.gateway }}"
+      - "--prop:nsx_dns1_0={{ nsxt.deployment.dns }}"
+      - "--prop:nsx_domain_0={{ nsxt.deployment.domain }}"
+      - "--prop:nsx_ntp_0={{ nsxt.deployment.ntp_server }}"
+      - "--prop:nsx_isSSHEnabled={{ nsxt.deployment.enable_ssh }}"
+      - "--prop:nsx_allowSSHRootLogin={{ nsxt.deployment.allow_root_login }}"
+      - "--prop:nsx_passwd_0={{ nsxt.admin_password }}"
+      - "--prop:nsx_cli_username={{ nsxt.cli_username }}"
+      - "--prop:nsx_cli_passwd_0={{ nsxt.cli_password }}"
+      - "--prop:nsx_cli_audit_username={{ nsxt.audit_username }}"
+      - "--prop:nsx_cli_audit_passwd_0={{ nsxt.audit_password }}"
+      - "--prop:nsx_grub_passwd={{ nsxt.grub_password }}"
+      - "--powerOn"
+      - "{{ nsxt.deployment.ova }}"
+      - "vi://{{ nsxt.deployment.vce.username }}:{{ nsxt.deployment.vce.password }}@{{ nsxt.deployment.vce.hostname }}/{{ nsxt.deployment.datacenter }}/host/{{ nsxt.deployment.cluster }}"
   ignore_errors: true
-  tags: always
+  args:
+    chdir: "{{ nsxt.deployment.chdir }}"
+  delegate_to: "{{ nsxt.deployment.host }}"
 
-- name: Deploy NSX-T VM
-  include_tasks: deploy_primary.yml
-  tags:
-    - deploy_nsxt.yml
-  when:
-    - vm_info is defined and vm_info.failed
-    - "'Failed to find virtual machine' in vm_info.msg"
+- name: Wait, that the manager "{{ inventory_hostname }}" is up and running
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/cluster/nodes
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  until: nsx_managers.status == 200 and inventory_hostname_short in (nsx_managers.json | json_query('results[*].display_name'))
+  retries: 100
+  delay: 15
+  register: nsx_managers
+  delegate_to: "{{ nsxt.deployment.host }}"
