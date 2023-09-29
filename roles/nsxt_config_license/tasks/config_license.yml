@@ -1,16 +1,40 @@
 ---
 # tasks file for nsxt_config_license
+- name: Get license from  "{{ inventory_hostname }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/licenses
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: nsxt_license
+  delegate_to: '{{ nsxt.api_host }}'
+
+- name: Add default parameters
+  set_fact:
+    payload: "{{ item  }}"
+    # payload: "{{ item | combine({ 'resource_type': 'PolicyUplinkHostSwitchProfile'}) }}"
+
+# - name: Exist, Update - add _revision parameter
+#   set_fact:
+#     #method: 'POST'
+#     #status_code: 200
+#     payload: "{{ payload | combine({ '_revision': (nsxt_license.json | json_query('results[?id==`' + item.id + '`]._revision'))[0] }) }}"
+#   when: item.id in (nsxt_license.json | json_query('results[*].id'))
+
 - name: Config license
   uri:
     url: https://{{ inventory_hostname }}/policy/api/v1/licenses
-    method: POST
-    status_code: 200
+    method: "{{ method | default('POST') }}"
+    status_code: "{{ status_code | default('200') }}"
     validate_certs: no
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
-      license_key: "{{ item }}"
+      "{{ payload }}"
   when: (item not in (nsxt_license.json | json_query('results[*].license_key')))
   delegate_to: '{{ nsxt.api_host }}'

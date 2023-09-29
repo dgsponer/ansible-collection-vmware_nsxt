@@ -12,54 +12,28 @@
   register: edgecluster_profile
   delegate_to: '{{ nsxt.api_host }}'
 
+- name: Add default parameters
+  set_fact:
+    payload: "{{ item | combine({ 'resource_type': 'EdgeHighAvailabilityProfile'}) }}"
 
-
-- name: Create EdgeCluster-Profile "{{ item.display_name }}"
-  uri:
-    url: https://{{ inventory_hostname }}/policy/api/v1/cluster-profiles
-    method: POST
-    status_code: 201
-    validate_certs: no
-    user: "{{ nsxt.admin_username }}"
-    password: "{{ nsxt.admin_password }}"
-    force_basic_auth: yes
-    body_format: json
-    body:
-      resource_type: "{{ item.resource_type }}"
-      display_name: "{{ item.display_name }}"
-      bfd_probe_interval: "{{ item.bfd_probe_interval }}"
-      bfd_allowed_hops: "{{ item.bfd_allowed_hops }}"
-      bfd_declare_dead_multiple: "{{ item.bfd_declare_dead_multiple }}"
-      standby_relocation_config:
-        standby_relocation_threshold: "{{ item.standby_relocation_config.standby_relocation_threshold }}"
-  when: item.display_name not in (edgecluster_profile.json | json_query('results[*].display_name'))
-  delegate_to: '{{ nsxt.api_host }}'
-
-- set_fact:
-    param: "{{ (edgecluster_profile | json_query(query)).0 }}"
-  vars:
-    query: "json.results[?display_name=='{{ item.display_name}}'].{id:id, _revision:_revision}"
-  when: item.display_name in (edgecluster_profile.json | json_query('results[*].display_name'))
-
-- name: Update EdgeCluster-Profile "{{ item.display_name }}"
-  uri:
-    url: https://{{ inventory_hostname }}/policy/api/v1/cluster-profiles/{{ param.id }}
-    method: PUT
+- name: Exist, Update - add _revision parameter
+  set_fact:
+    method: 'PUT'
+    id: "{{ item.id }}"
     status_code: 200
+    payload: "{{ payload | combine({ '_revision': (edgecluster_profile.json | json_query('results[?id==`' + item.id + '`]._revision'))[0] }) }}"
+  when: item.id in (edgecluster_profile.json | json_query('results[*].id'))
+
+- name: Create or update EdgeCluster-Profile "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/cluster-profiles/{{ id | default('') }}
+    method: "{{ method | default('POST') }}"
+    status_code: "{{ status_code | default('201') }}"
     validate_certs: no
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
-      resource_type: "{{ item.resource_type }}"
-      id: "{{ param.id }}"
-      display_name: "{{ item.display_name }}"
-      bfd_probe_interval: "{{ item.bfd_probe_interval }}"
-      bfd_allowed_hops: "{{ item.bfd_allowed_hops }}"
-      bfd_declare_dead_multiple: "{{ item.bfd_declare_dead_multiple }}"
-      standby_relocation_config:
-        standby_relocation_threshold: "{{ item.standby_relocation_config.standby_relocation_threshold }}"
-      _revision: "{{ param._revision}}"
-  when: item.display_name in (edgecluster_profile.json | json_query('results[*].display_name'))
+      "{{ payload }}"
   delegate_to: '{{ nsxt.api_host }}'

@@ -9,12 +9,11 @@
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
-    return_content: true
-  register: nsxt_computer_manager
+  register: computer_manager
   delegate_to: '{{ nsxt.api_host }}'
 
 - name: Get Fingerprint
-  shell: openssl s_client -connect {{ item.hostname }}:443  2>/dev/null </dev/null |  sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | openssl x509 -fingerprint -noout -in /dev/stdin -sha256 | sed 's/sha256 Fingerprint=//'
+  shell: openssl s_client -connect {{ item.server }}:443  2>/dev/null </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | openssl x509 -fingerprint -noout -in /dev/stdin -sha256 | sed 's/sha256 Fingerprint=//'
   register: thumbprint
   delegate_to: '{{ nsxt.api_host }}'
 
@@ -22,37 +21,38 @@
   set_fact:
     thumbprint: "{{ thumbprint.stdout }}"
 
-- name: create or update
+- name: Add default parameters credential
+  set_fact:
+    credential: "{{ item.credential | combine({ 'credential_type': 'UsernamePasswordLoginCredential' }) }}"
+- name: Add default parameters credential
+  set_fact:
+    credential: "{{ credential | combine({ 'thumbprint': thumbprint }) }}"
+
+- name: Add default parameters
+  set_fact:
+    payload: "{{ item | combine({ 'resource_type': 'ComputeManager' }) }}"
+- name: Add default parameters
+  set_fact:
+    payload: "{{ payload | combine({ 'credential': credential }) }}"
+
+- name: Exist, Update - add _revision parameter
   set_fact:
     method: 'PUT'
-    id: "{{ (nsxt_computer_manager.json | json_query('results[?display_name==`' + item.hostname + '`].id')).0 }}"
-    _revision: "{{ (nsxt_computer_manager.json | json_query('results[?display_name==`' + item.hostname + '`]._revision')).0 }}"
-  when: item.hostname in (nsxt_computer_manager.json | json_query('results[*].display_name'))
+    status_code: 200
+    id: "{{ (computer_manager.json | json_query('results[?server==`' + item.server + '`].id'))[0] }}"
+    payload: "{{ payload | combine({ '_revision': (computer_manager.json | json_query('results[?server==`' + item.server + '`]._revision'))[0] }) }}"
+  when: item.server in (computer_manager.json | json_query('results[*].server'))
 
-- name: Create or update Compute-Manager  "{{ item.hostname }}"
+- name: Create or update Compute-Manager  "{{ item.display_name }}"
   uri:
     url: https://{{ inventory_hostname }}/api/v1/fabric/compute-managers/{{ id | default('') }}
     method: "{{ method | default('POST') }}"
-    status_code: 201
+    status_code: "{{ status_code | default('201') }}"
     validate_certs: no
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
-      display_name: '{{ item.hostname }}'
-      server: '{{ item.hostname }}'
-      origin_type: 'vCenter'
-      multi_nsx: '{{ item.multi_nsx }}'
-      credential:
-        credential_type: 'UsernamePasswordLoginCredential'
-        username: '{{ item.username }}'
-        password: '{{ item.password }}'
-        thumbprint: '{{ thumbprint }}'
-      create_service_account: '{{ item.create_service_account }}'
-      set_as_oidc_provider: '{{ item.set_as_oidc_provider }}'
-      access_level_for_oidc: '{{ item.access_level_for_oidc }}'
-      resource_type: "ComputeManager"
-      _revision: "{{ _revision | default(omit) }}"
+      "{{ payload }}"
   delegate_to: '{{ nsxt.api_host }}'
-

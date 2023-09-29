@@ -1,22 +1,5 @@
 ---
 # tasks file for nsxt_config_license
-# - name: get passwords
-#   include_role:
-#     name: ansible-role-cyberark
-#   tags: always
-
-- name: Get license from  "{{ inventory_hostname }}"
-  uri:
-    url: https://{{ inventory_hostname }}/policy/api/v1/licenses
-    method: GET
-    status_code: 200
-    validate_certs: no
-    user: "{{ nsxt.admin_username }}"
-    password: "{{ nsxt.admin_password }}"
-    force_basic_auth: yes
-  register: nsxt_license
-  delegate_to: '{{ nsxt.api_host }}'
-
 - name: Config License
   include_tasks: config_license.yml
   loop: "{{ nsxt.license }}"

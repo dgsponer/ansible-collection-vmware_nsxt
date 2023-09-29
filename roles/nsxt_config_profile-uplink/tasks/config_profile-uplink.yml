@@ -1,10 +1,10 @@
 ---
 # tasks file for nsxt_config_profile-uplink
-- name: Get Uplink-Profile "{{ item.display_name }}"
+- name: Get Uplink-Profile
   uri:
-    url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-switch-profiles/{{ item.id }}
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-switch-profiles/
     method: GET
-    status_code: 200, 404
+    status_code: 200
     validate_certs: no
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
@@ -12,46 +12,27 @@
   register: uplink_profile
   delegate_to: '{{ nsxt.api_host }}'
 
+- name: Add default parameters
+  set_fact:
+    payload: "{{ item | combine({ 'resource_type': 'PolicyUplinkHostSwitchProfile'}) }}"
 
+- name: Exist, Update - add _revision parameter
+  set_fact:
+    #method: 'PATCH'
+    #status_code: 200
+    payload: "{{ payload | combine({ '_revision': (uplink_profile.json | json_query('results[?id==`' + item.id + '`]._revision'))[0] }) }}"
+  when: item.id in (uplink_profile.json | json_query('results[*].id'))
 
-- name: Create Uplink-Profile "{{ item.display_name }}"
+- name: Create or update Uplink-Profile "{{ item.display_name }}"
   uri:
     url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-switch-profiles/{{ item.id }}
-    method: PATCH
-    status_code: 200
+    method: "{{ method | default('PATCH') }}"
+    status_code: "{{ status_code | default('200') }}"
     validate_certs: no
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
-      id: "{{ item.id }}"
-      display_name: "{{ item.display_name }}"
-      overlay_encap: "{{ item.overlay_encap | default('GENEVE') }}"
-      teaming: "{{ item.teaming }}"
-      transport_vlan: "{{ item.transport_vlan | default('0') }}"
-      resource_type: "{{ item.resource_type | default('PolicyUplinkHostSwitchProfile') }}"
-  when: uplink_profile.status == 404
-  delegate_to: '{{ nsxt.api_host }}'
-
-- name: Update Uplink-Profile "{{ item.display_name }}"
-  uri:
-    url: https://{{ inventory_hostname }}/policy/api/v1/infra/host-switch-profiles/{{ item.id }}
-    method: PATCH
-    status_code: 200
-    validate_certs: no
-    user: "{{ nsxt.admin_username }}"
-    password: "{{ nsxt.admin_password }}"
-    force_basic_auth: yes
-    body_format: json
-    body:
-      id: "{{ item.id }}"
-      display_name: "{{ item.display_name }}"
-      description: "Managed by Ansible"
-      overlay_encap: "{{ item.overlay_encap | default('GENEVE') }}"
-      teaming: "{{ item.teaming }}"
-      transport_vlan: "{{ item.transport_vlan | default('0') }}"
-      resource_type: "{{ item.resource_type | default('PolicyUplinkHostSwitchProfile') }}"
-      _revision: "{{ uplink_profile.json._revision }}"
-  when: uplink_profile.status == 200
+      "{{ payload }}"
   delegate_to: '{{ nsxt.api_host }}'

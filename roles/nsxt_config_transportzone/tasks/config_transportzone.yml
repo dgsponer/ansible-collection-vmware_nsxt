@@ -1,15 +1,38 @@
 ---
 # tasks file for nsxt_config_transportzone
+- name: Get Transportzone "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites/default/enforcement-points/default/transport-zones/
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: transportzone
+  delegate_to: '{{ nsxt.api_host }}'
+
+- name: Add default parameters
+  set_fact:
+    payload: "{{ item | combine({ 'resource_type': 'PolicyTransportZone'}) }}"
+
+- name: Exist, Update - add _revision parameter
+  set_fact:
+    #method: 'PATCH'
+    #status_code: 200
+    payload: "{{ payload | combine({ '_revision': (transportzone.json | json_query('results[?id==`' + item.id + '`]._revision'))[0] }) }}"
+  when: item.id in (transportzone.json | json_query('results[*].id'))
+
 - name: Config Transport Zone  "{{ item.display_name }}"
   uri:
     url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites/default/enforcement-points/default/transport-zones/{{ item.id }}
-    method: PATCH
-    status_code: 200
+    method: "{{ method | default('PATCH') }}"
+    status_code: "{{ status_code | default('200') }}"
     validate_certs: no
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
-      "{{ item }}"
+      "{{ payload }}"
   delegate_to: '{{ nsxt.api_host }}'
