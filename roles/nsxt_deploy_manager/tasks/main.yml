@@ -59,23 +59,23 @@
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
-  until: nsx_managers.status == 200 and inventory_hostname_short in (nsx_managers.json | json_query('results[*].display_name'))
+  until: nsx_manager.status == 200 and inventory_hostname_short in (nsx_manager.json | json_query('results[*].display_name'))
   retries: 100
   delay: 15
-  register: nsx_managers
+  register: nsx_manager
   delegate_to: "{{ nsxt.deployment.host }}"
 
-- name: Wait, that the manager "{{ inventory_hostname }}" have /policy/api/v1/infra/sites available
+- name: Wait, that the manager "{{ inventory_hostname }}" have /policy/api/v1/infra/sites/default available
   uri:
-    url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites/default
     method: GET
     status_code: 200
     validate_certs: no
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
-  until: nsx_sites.status == 200
+  until: sites_default.status == 200
   retries: 100
   delay: 15
-  register: nsx_sites
+  register: sites_default
   delegate_to: "{{ nsxt.deployment.host }}"
