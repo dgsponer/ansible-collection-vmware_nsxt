@@ -1,6 +1,6 @@
 ---
 # tasks file for nsxt_config_transportzone
-- name: Get Transportzone "{{ item.display_name }}"
+- name: Get Transportzone
   uri:
     url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites/default/enforcement-points/default/transport-zones/
     method: GET

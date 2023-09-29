@@ -1,42 +1,61 @@
 ---
 # tasks file for nsxt_config_ippool
-- set_fact:
-    ip_pool: "{{ item }}"
-
-- name: Create IP-Pool "{{ item.name }}"
+- name: Get IPPool
   uri:
-    url: https://{{ inventory_hostname }}/policy/api/v1/infra/ip-pools/{{ ip_pool.id }}
-    method: PATCH
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/ip-pools
+    method: GET
     status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: ippool
+  delegate_to: '{{ nsxt.api_host }}'
+
+- name: Add default parameters
+  set_fact:
+    payload: "{{ item | combine({ 'resource_type': 'IpAddressPool'}) }}"
+
+- name: Exist, Update - add _revision parameter
+  set_fact:
+    #method: 'PATCH'
+    #status_code: 200
+    payload: "{{ payload | combine({ '_revision': (ippool.json | json_query('results[?id==`' + item.id + '`]._revision'))[0] }) }}"
+  when: item.id in (ippool.json | json_query('results[*].id'))
+
+- name: Create IP-Pool "{{ item.display_name }}"
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/ip-pools/{{ item.id }}
+    method: "{{ method | default('PATCH') }}"
+    status_code: "{{ status_code | default('200') }}"
     validate_certs: no
     user: "{{ nsxt.admin_username }}"
     password: "{{ nsxt.admin_password }}"
     force_basic_auth: yes
     body_format: json
     body:
-      display_name: "{{ item.display_name }}"
-      description: "{{ item.description | default('') }}"
+      "{{ payload }}"
   delegate_to: '{{ nsxt.api_host }}'
 
 
-- name: Create Subnet
-  uri:
-    url: https://{{ inventory_hostname }}/policy/api/v1/infra/ip-pools/{{ ip_pool.id }}/ip-subnets/{{ item.id }}
-    method: PATCH
-    status_code: 200
-    validate_certs: no
-    user: "{{ nsxt.admin_username }}"
-    password: "{{ nsxt.admin_password }}"
-    force_basic_auth: yes
-    body_format: json
-    body:
-      display_name: "{{ item.id }}"
-      description: "{{ item.description | default(omit) }}"
-      resource_type: "IpAddressPoolStaticSubnet"
-      allocation_ranges: "{{ item.ranges }}"
-      cidr: "{{ item.cidr }}"
-      gateway_ip: "{{ item.gateway | default(omit) }}"
-      dns_nameservers: "{{ item.dns | default(omit) }}"
-      dns_suffix: "{{ item.dns_suffix | default(omit) }}"
-  delegate_to: '{{ nsxt.api_host }}'
-  loop: "{{ ip_pool.subnets }}"
+# - name: Create Subnet
+#   uri:
+#     url: https://{{ inventory_hostname }}/policy/api/v1/infra/ip-pools/{{ ip_pool.id }}/ip-subnets/{{ item.id }}
+#     method: PATCH
+#     status_code: 200
+#     validate_certs: no
+#     user: "{{ nsxt.admin_username }}"
+#     password: "{{ nsxt.admin_password }}"
+#     force_basic_auth: yes
+#     body_format: json
+#     body:
+#       display_name: "{{ item.id }}"
+#       description: "{{ item.description | default(omit) }}"
+#       resource_type: "IpAddressPoolStaticSubnet"
+#       allocation_ranges: "{{ item.ranges }}"
+#       cidr: "{{ item.cidr }}"
+#       gateway_ip: "{{ item.gateway | default(omit) }}"
+#       dns_nameservers: "{{ item.dns | default(omit) }}"
+#       dns_suffix: "{{ item.dns_suffix | default(omit) }}"
+#   delegate_to: '{{ nsxt.api_host }}'
+#   loop: "{{ ip_pool.subnets }}"

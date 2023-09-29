@@ -7,4 +7,8 @@
 
 - name: Create IP-Pool
   include_tasks: config_ippool.yml
-  loop: "{{ nsxt.ip_pools }}"
+  loop: "{{ nsxt.ip_pool }}"
+
+- name: Create IP-Subnet
+  include_tasks: config_ipsubnet.yml
+  loop: "{{ nsxt.ip_subnet }}"
