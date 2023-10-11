@@ -55,4 +55,35 @@
     body_format: json
     body:
       "{{ payload }}"
+  register: computer_manager_result
+  delegate_to: '{{ nsxt.api_host }}'
+
+- name: Check Computer Manager "{{ computer_manager_result.json.display_name }}" state is success
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/fabric/compute-managers/{{ computer_manager_result.json.id }}/state
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: computer_manager_state
+  until: ( computer_manager_state.json.state == "success" )
+  retries: 100
+  delay: 15
+  delegate_to: '{{ nsxt.api_host }}'
+
+- name: Check Computer Manager "{{ computer_manager_result.json.display_name }}" status is UP and REGISTERED
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/fabric/compute-managers/{{ computer_manager_result.json.id }}/status
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: computer_manager_status
+  until: ( computer_manager_status.json.connection_status == "UP" ) and ( computer_manager_status.json.registration_status == "REGISTERED" )
+  retries: 100
+  delay: 15
   delegate_to: '{{ nsxt.api_host }}'

@@ -1,0 +1,35 @@
+---
+# tasks file for nsxt_gc_switching
+- name: Get global-configs/SwitchGlobalConfig from  "{{ inventory_hostname }}"
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/global-configs/SwitchingGlobalConfig
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: nsxt_gc_switching
+  delegate_to: '{{ nsxt.api_host }}'
+
+- name: Add default parameters
+  set_fact:
+    payload: "{{ nsxt.global_config.switching | combine({ 'resource_type': 'SwitchingGlobalConfig'}) }}"
+
+- name: Exist, Update - add _revision parameter
+  set_fact:
+    payload: "{{ payload | combine({ '_revision': nsxt_gc_switching.json._revision }) }}"
+
+- name: Config global-configs/SwitchGlobalConfig
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/global-configs/SwitchingGlobalConfig
+    method: "{{ method | default('PUT') }}"
+    status_code: "{{ status_code | default('200') }}"
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      "{{ payload }}"
+  delegate_to: '{{ nsxt.api_host }}'
