@@ -32,4 +32,25 @@ host_switch_spec:
               profile_id: "{{ (nsxt_transportzoneprofile | json_query('json.results[?display_name==`' + transportzone.transport_zone_profile + '`].path')).0 }}"
 {% endfor %}
 
+{% if hostswitch.transport_node_profile_sub_configs is defined %}
+      transport_node_profile_sub_configs:
+{% for sub_config in hostswitch.transport_node_profile_sub_configs %}
+        - name: {{ sub_config.display_name }}
+          host_switch_config_option:
+            host_switch_id: {{ (nsxt_hostswitch | json_query('json.results[?display_name==`' + sub_config.dvs_switch + '`].uuid')).0 }}
+            host_switch_profile_ids:
+              - key: "UplinkHostSwitchProfile"
+                value: {{ (nsxt_uplinkprofile | json_query('json.results[?display_name==`' + sub_config.uplink_profile + '`].path')).0 }}
+
+            uplinks:
+              {{ sub_config.uplinks }}
+
+            ip_assignment_spec:
+              ip_pool_id: "/infra/manager-ip-pools/{{ (nsxt_ippool | json_query('json.results[?display_name==`' + sub_config.ip_pool + '`].realization_id')).0 }}"
+              resource_type: "StaticIpPoolSpec"
+
+{% endfor %}
+
+{% endif %}
+
 {% endfor %}
