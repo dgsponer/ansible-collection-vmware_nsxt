@@ -1,0 +1,6 @@
+---
+# tasks file for nsxt_config_nsxcli-cmd
+- name: Run nsxcli command
+  raw: "runuser -l admin -c '{{ item }}'"
+  loop: "{{ nsxt.nsxcli_cmd }}"
+  changed_when: false

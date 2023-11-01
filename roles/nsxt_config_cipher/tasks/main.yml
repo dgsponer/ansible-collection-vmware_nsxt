@@ -1,0 +1,7 @@
+---
+# tasks file for nsxt_config_cipher
+- name: Configure cipher
+  replace:
+    path: /usr/tanuki/conf/proton-tomcat-wrapper.conf
+    regexp: 'Djdk.tls.client.cipherSuites=.+'
+    replace: "Djdk.tls.client.cipherSuites={{ nsxt.cipher | join(',') }}"

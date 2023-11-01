@@ -1,0 +1,72 @@
+---
+# tasks file for nsxt_join_cluster
+- name: Get Cluster from "{{ nsxt.cluster.primary_host }}"
+  uri:
+    url: https://{{ nsxt.cluster.primary_host }}/api/v1/cluster
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  register: nsxt_cluster
+  delegate_to: '{{ nsxt.api_host }}'
+
+- name: Extract needed informations
+  set_fact:
+    nsx_primary_ip: "{{ lookup('dig', nsxt.cluster.primary_host) | ansible.utils.ipaddr }}"
+    nsx_cluster_id: "{{ nsxt_cluster.json.cluster_id }}"
+    nsx_cluster_thumbprint: "{{ (nsxt_cluster.json | json_query('nodes[?fqdn==`' + nsxt.cluster.primary_host + '`].api_listen_addr'))[0].certificate_sha256_thumbprint }}"
+  when: (inventory_hostname not in (nsxt_cluster.json | json_query('nodes[*].fqdn')))
+
+- name: Join "{{ inventory_hostname }}" to ClusterID "{{ nsx_cluster_id }}"
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/cluster?action=join_cluster
+    method: "POST"
+    status_code: [-1, 200]
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body:
+      "cluster_id": "{{ nsx_cluster_id }}"
+      "ip_address": "{{ nsx_primary_ip }}"
+      "username": "{{ nsxt.admin_username }}"
+      "password": "{{ nsxt.admin_password }}"
+      "certificate_sha256_thumbprint": "{{ nsx_cluster_thumbprint }}"
+      timeout: 60
+  when: (inventory_hostname not in (nsxt_cluster.json | json_query('nodes[*].fqdn')))
+  delegate_to: '{{ nsxt.api_host }}'
+
+- name: Wait, that the manager "{{ inventory_hostname }}" is up and running
+  uri:
+    url: https://{{ inventory_hostname }}/api/v1/cluster/nodes
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  until: nsx_manager.status == 200 and inventory_hostname_short in (nsx_manager.json | json_query('results[*].display_name'))
+  retries: 100
+  delay: 15
+  register: nsx_manager
+  when: (inventory_hostname not in (nsxt_cluster.json | json_query('nodes[*].fqdn')))
+  delegate_to: "{{ nsxt.deployment.host }}"
+
+- name: Wait, that the manager "{{ inventory_hostname }}" have /policy/api/v1/infra/sites/default available
+  uri:
+    url: https://{{ inventory_hostname }}/policy/api/v1/infra/sites/default
+    method: GET
+    status_code: 200
+    validate_certs: no
+    user: "{{ nsxt.admin_username }}"
+    password: "{{ nsxt.admin_password }}"
+    force_basic_auth: yes
+  until: sites_default.status == 200
+  retries: 100
+  delay: 15
+  register: sites_default
+  when: (inventory_hostname not in (nsxt_cluster.json | json_query('nodes[*].fqdn')))
+  delegate_to: "{{ nsxt.deployment.host }}"
