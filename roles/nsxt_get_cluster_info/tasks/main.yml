@@ -1,8 +1,8 @@
 ---
 # tasks file for nsxt_get_cluster_info
-- name: Get Cluster Infos from "{{ nsxt.cluster.primary_host }}"
+- name: Get Cluster Infos from "{{ nsxt.deployment.nsx_cluster.primary_host }}"
   uri:
-    url: https://{{ nsxt.cluster.primary_host }}/api/v1/cluster
+    url: https://{{ nsxt.deployment.nsx_cluster.primary_host }}/api/v1/cluster
     method: GET
     status_code: 200
     validate_certs: no
@@ -11,11 +11,11 @@
     force_basic_auth: yes
   register: nsxt_cluster
   delegate_to: '{{ nsxt.api_host }}'
-  when: (inventory_hostname != nsxt.cluster.primary_host)
+  when: (inventory_hostname != nsxt.deployment.nsx_cluster.primary_host)
 
-- name: Get Registration Token from "{{ nsxt.cluster.primary_host }}"
+- name: Get Registration Token from "{{ nsxt.deployment.nsx_cluster.primary_host }}"
   uri:
-    url: https://{{ nsxt.cluster.primary_host }}/api/v1/aaa/registration-token
+    url: https://{{ nsxt.deployment.nsx_cluster.primary_host }}/api/v1/aaa/registration-token
     method: POST
     status_code: 200
     validate_certs: no
@@ -24,15 +24,15 @@
     force_basic_auth: yes
   register: nsxt_registration_token
   delegate_to: '{{ nsxt.api_host }}'
-  when: (inventory_hostname != nsxt.cluster.primary_host)
+  when: (inventory_hostname != nsxt.deployment.nsx_cluster.primary_host)
 
 - name: Extract needed informations
   set_fact:
-    nsx_mpIp: "{{ lookup('dig', nsxt.cluster.primary_host) | ansible.utils.ipaddr }}"
+    nsx_mpIp: "{{ lookup('dig', nsxt.deployment.nsx_cluster.primary_host) | ansible.utils.ipaddr }}"
     nsx_mpToken: "{{ nsxt_registration_token.json.token }}"
     nsx_mpNodeId: "{{ inventory_hostname_short }}"
     nsx_mpClusterId: "{{ nsxt_cluster.json.cluster_id }}"
-    nsx_mpThumbprint: "{{ (nsxt_cluster.json | json_query('nodes[?fqdn==`' + nsxt.cluster.primary_host + '`].api_listen_addr'))[0].certificate_sha256_thumbprint }}"
+    nsx_mpThumbprint: "{{ (nsxt_cluster.json | json_query('nodes[?fqdn==`' + nsxt.deployment.nsx_cluster.primary_host + '`].api_listen_addr'))[0].certificate_sha256_thumbprint }}"
   when:
-    - (inventory_hostname != nsxt.cluster.primary_host)
+    - (inventory_hostname != nsxt.deployment.nsx_cluster.primary_host)
     - (inventory_hostname not in (nsxt_cluster.json | json_query('nodes[*].fqdn')))

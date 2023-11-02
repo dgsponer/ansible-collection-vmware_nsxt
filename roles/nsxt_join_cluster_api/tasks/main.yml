@@ -1,8 +1,8 @@
 ---
 # tasks file for nsxt_join_cluster
-- name: Get Cluster from "{{ nsxt.cluster.primary_host }}"
+- name: Get Cluster from "{{ nsxt.deployment.nsx_cluster.primary_host }}"
   uri:
-    url: https://{{ nsxt.cluster.primary_host }}/api/v1/cluster
+    url: https://{{ nsxt.deployment.nsx_cluster.primary_host }}/api/v1/cluster
     method: GET
     status_code: 200
     validate_certs: no
@@ -14,9 +14,9 @@
 
 - name: Extract needed informations
   set_fact:
-    nsx_primary_ip: "{{ lookup('dig', nsxt.cluster.primary_host) | ansible.utils.ipaddr }}"
+    nsx_primary_ip: "{{ lookup('dig', nsxt.deployment.nsx_cluster.primary_host) | ansible.utils.ipaddr }}"
     nsx_cluster_id: "{{ nsxt_cluster.json.cluster_id }}"
-    nsx_cluster_thumbprint: "{{ (nsxt_cluster.json | json_query('nodes[?fqdn==`' + nsxt.cluster.primary_host + '`].api_listen_addr'))[0].certificate_sha256_thumbprint }}"
+    nsx_cluster_thumbprint: "{{ (nsxt_cluster.json | json_query('nodes[?fqdn==`' + nsxt.deployment.nsx_cluster.primary_host + '`].api_listen_addr'))[0].certificate_sha256_thumbprint }}"
   when: (inventory_hostname not in (nsxt_cluster.json | json_query('nodes[*].fqdn')))
 
 - name: Join "{{ inventory_hostname }}" to ClusterID "{{ nsx_cluster_id }}"
