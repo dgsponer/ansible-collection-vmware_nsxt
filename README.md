@@ -8,6 +8,8 @@ localhost ansible_connection=local
 
 [vmw_nsxt]
 lab01-ntm-01.vcloud24.net
+lab01-ntm-02.vcloud24.net
+lab01-ntm-03.vcloud24.net
 ```
 
 # vmw_nsxt.yml
@@ -50,17 +52,29 @@ nsxt:
     role: "NSX Manager"
     option: "small"
 
+  nsx_cluster:
+    primary_host: lab01-nsm-11.vcloud24.net
+
   grub_password: 'VMwareNSX1..'
+  root_password: 'VMwareNSX1..'
 
   admin_username: 'admin'
   admin_password: 'VMwareNSX1..'
 
-  cli_username: 'admin'
-  cli_password: 'VMwareNSX1..'
-
   audit_username: 'audit'
   audit_password: 'VMwareNSX1..'
 
+  cipher:
+    - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 # Default since 4.1
+    - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 # Default since 4.1
+    - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+
+  nsxcli_cmd:
+    - 'clear user admin password-expiration'
+    - 'clear user root password-expiration'
+    - 'clear user audit password-expiration'
+    - 'set node central-config disabled'
+    - 'set logging-server 0.0.0.0:514 proto udp level info'
 
 
 # POST https://vdc-repo.vmware.com/vmwb-repository/dcr-public/612caf56-5bb1-4a0b-8d2b-12ccd8981904/37be75ba-aa56-42f4-99c3-f6c989ddbe57/api_includes/method_CreateLicense.html
@@ -69,6 +83,20 @@ nsxt:
   license:
     - license_key: ""
     - license_key: ""
+
+
+
+# PUT https://vdc-repo.vmware.com/vmwb-repository/dcr-public/612caf56-5bb1-4a0b-8d2b-12ccd8981904/37be75ba-aa56-42f4-99c3-f6c989ddbe57/api_includes/method_UpdateGlobalConfigs.html
+# default_parameter
+#   resource_type: 'RoutingGlobalConfig'
+#   resource_type: 'SwitchingGlobalConfig'
+  global_config:
+    routing:
+      l3_forwarding_mode: IPV4_ONLY
+      logical_uplink_mtu: 8900
+    switching:
+      physical_uplink_mtu: 9000
+      remote_tunnel_physical_mtu: 1700
 
 
 
@@ -168,6 +196,28 @@ nsxt:
             uplink_type: "PNIC"
       transport_vlan: 601
 
+    - id: "1bbcdde8-6836-11ee-8c99-0242ac120002"
+      display_name: "vc24-nsx-edge-single-nic-uplink-profile-with-named-teaming"
+      description: "Managed by Ansible"
+      overlay_encap: "GENEVE"
+      teaming:
+        policy: "FAILOVER_ORDER"
+        active_list:
+          - uplink_name: "uplink1"
+            uplink_type: "PNIC"
+      named_teamings:
+        - name: "leaf01"
+          policy: "FAILOVER_ORDER"
+          active_list:
+            - uplink_name: "uplink2"
+              uplink_type: "PNIC"
+        - name: "leaf02"
+          policy: "FAILOVER_ORDER"
+          active_list:
+            - uplink_name: "uplink3"
+              uplink_type: "PNIC"
+      transport_vlan: 0
+
 
 
 #
@@ -175,7 +225,7 @@ nsxt:
 #
   transportnode_profile:
     - id: "9447a6f3-bf01-493d-ba07-5c2e1bc5c6b1"
-      display_name: "demo-default-loadbalance-transportnode-profile"
+      display_name: "demo-default-loadbalance-transportnode-profile-az1"
       description: "Demo"
       host_switch:
         - dvs_switch: "lab01"
@@ -203,6 +253,70 @@ nsxt:
             - vds_uplink_name: "Uplink 1"
               uplink_name: "uplink-2"
 
+    - id: "9447a6f3-bf01-493d-ba07-5c2e1bc5c6b2"
+      display_name: "demo-default-loadbalance-transportnode-profile-az2"
+      description: "Demo"
+      host_switch:
+        - dvs_switch: "lab01"
+          display_name: "lab01"
+          ip_pool: "demo-vtep-ip-address-pool"
+          transport_zone:
+            - transport_zone_name: "demo-nsx-overlay-transportzone"
+              transport_zone_profile: "nsx-default-bfd-transportzone-profile"
+          uplink_profile: "vc24-default-loadbalance-uplink-hostswitch-profile"
+          uplinks:
+            - vds_uplink_name: "Uplink 1"
+              uplink_name: "uplink-1"
+            - vds_uplink_name: "Uplink 2"
+              uplink_name: "uplink-2"
+        - dvs_switch: "demo"
+          display_name: "demo"
+          ip_pool: "demo-vtep-ip-address-pool"
+          transport_zone:
+            - transport_zone_name: "demo-nsx-vlan-transportzone"
+              transport_zone_profile: "nsx-default-bfd-transportzone-profile"
+          uplink_profile: "vc24-default-loadbalance-uplink-hostswitch-profile"
+          uplinks:
+            - vds_uplink_name: "Uplink 2"
+              uplink_name: "uplink-1"
+            - vds_uplink_name: "Uplink 1"
+              uplink_name: "uplink-2"
+
+    - id: "9447a6f3-bf01-493d-ba07-5c2e1bc5c6b1"
+      display_name: "demo-default-loadbalance-transportnode-profile-subcluster"
+      description: "Managed by Ansible"
+      host_switch:
+        - dvs_switch: "dummy"
+          display_name: "dummy"
+          ip_pool: "ippool-dummy"
+          transport_zone:
+            - transport_zone_name: "dummy-tz"
+              transport_zone_profile: "nsx-default-bfd-transportzone-profile"
+          uplink_profile: "dummy"
+          uplinks:
+            - vds_uplink_name: "Uplink 1"
+              uplink_name: "uplink1"
+            - vds_uplink_name: "Uplink 2"
+              uplink_name: "uplink2"
+          transport_node_profile_sub_configs:
+            - dvs_switch: "dvs-az01"
+              display_name: "AZ1"
+              ip_pool: "ippool-az1"
+              uplink_profile: "demo-default-loadbalance-transportnode-profile-az1"
+              uplinks:
+                - vds_uplink_name: "Uplink 1"
+                  uplink_name: "uplink1"
+                - vds_uplink_name: "Uplink 2"
+                  uplink_name: "uplink2"
+            - dvs_switch: "dvs-az2"
+              display_name: "AZ2"
+              ip_pool: "ippool-az2"
+              uplink_profile: "demo-default-loadbalance-transportnode-profile-az2"
+              uplinks:
+                - vds_uplink_name: "Uplink 1"
+                  uplink_name: "uplink1"
+                - vds_uplink_name: "Uplink 2"
+                  uplink_name: "uplink2"
 
 
 # POST https://vdc-repo.vmware.com/vmwb-repository/dcr-public/612caf56-5bb1-4a0b-8d2b-12ccd8981904/37be75ba-aa56-42f4-99c3-f6c989ddbe57/api_includes/method_CreateClusterProfile.html
@@ -469,20 +583,43 @@ nsxt:
 # site.yml
 ```
 ---
-- hosts: vmw_nsx
-  gather_facts: false
+- hosts: vmw_nsx[0]
   collections:
-    - swisscom.vmware_nsxt
-
+    - dgsponer.vmware_nsxt
+  
   roles:
     - nsxt_deploy_manager
+    - nsxt_gc_routing
+    - nsxt_gc_switching
     - nsxt_config_license
-    - nsxt_config_ippool
-    - nsxt_config_transportzone
-    - nsxt_config_profile-uplink
-    - nsxt_config_profile-edgecluster
     - nsxt_config_compute-manager
-    # - nsxt_config_profile-transportnode
-    # - nsxt_deploy_edgenode
-    # - nsxt_config_edgecluster
-```
+    - nsxt_config_ippool
+    - nsxt_config_profile-uplink
+    - nsxt_config_transportzone
+    - nsxt_config_profile-edgecluster
+    - nsxt_config_profile-transportnode
+    - nsxt_deploy_edgenode
+    - nsxt_config_edgecluster
+
+
+- hosts: vmw_nsx
+  collections:
+    - dgsponer.vmware_nsxt
+  
+  roles:
+    - nsxt_config_cipher
+    - nsxt_config_nsxcli-cmd
+
+  vars:
+    ansible_ssh_user: root
+    ansible_ssh_pass: "{{ nsxt.cli_password }}"
+
+
+- hosts: vmw_nsx:!vmw_nsx[0]
+  collections:
+    - dgsponer.vmware_nsxt
+  
+  roles:
+    - nsxt_get_cluster_info
+    - nsxt_deploy_manager
+    ```
